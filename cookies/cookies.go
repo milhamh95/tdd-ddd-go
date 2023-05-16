@@ -37,17 +37,24 @@ func (cs *CookiesService) Purchase(
 	cardToken, emailAddress string) error {
 	priceOfCookie := 50
 
-	_ = cs.stockChecker.AmountInStock(ctx)
+	cookiesInStock := cs.stockChecker.AmountInStock(ctx)
+	if cookiesInStock == 0 {
+		return errors.New("no cookie in stock")
+	}
+
+	if amountOfCookiesToPurchase > cookiesInStock {
+		amountOfCookiesToPurchase = cookiesInStock
+	}
 
 	cost := priceOfCookie * amountOfCookiesToPurchase
 	err := cs.cardCharger.ChargeCard(ctx, cardToken, cost)
 	if err != nil {
-		return errors.New("your card was declined")
+		return errors.New("card is declined")
 	}
 
 	err = cs.emailSender.SendEmailReceipt(ctx, emailAddress, cost)
 	if err != nil {
-		return errors.New("your email receipt could not be sent")
+		return errors.New("failed to send email")
 	}
 
 	return nil
